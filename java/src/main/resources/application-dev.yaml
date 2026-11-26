@@ -2,8 +2,10 @@
 # Never use these credentials outside a local machine.
 spring:
   datasource:
-    # Matches the docker run command in java/README.md. Ignored under Testcontainers (@ServiceConnection wins).
-    url: jdbc:postgresql://localhost:5432/time_deposit_kata_db
+    # Matches the docker run command in java/README.md. Port 55432, not 5432, so it never collides with a locally
+    # installed PostgreSQL, whose user would not own this database (PostgreSQL 15+ then refuses to create tables).
+    # Ignored under Testcontainers (@ServiceConnection wins).
+    url: jdbc:postgresql://localhost:55432/time_deposit_kata_db
     username: time_deposit_kata_user
     password: time_deposit_kata_password
 
