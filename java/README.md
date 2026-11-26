@@ -404,7 +404,78 @@ These are deliberately outside the kata's scope (the README asks for exactly two
 
 ## AI-assisted development
 
-- **Tool:** [Claude Code](https://claude.com/claude-code) (CLI and JetBrains integration), model Claude Opus 5.5.
-- **Configuration:** the repo-level [`CLAUDE.md`](../CLAUDE.md) gives the agent the kata's hard constraints (exactly two endpoints, no breaking changes to `TimeDeposit` or `updateBalance`), the build and test commands, and the architecture. Every session loads it automatically, so the setup can be reproduced by opening the repo with Claude Code.
-- **Workflow:** the agent proposed each change as a diff. Every edit was reviewed and accepted (or modified) in the IDE before it was applied, and the agent ran the Maven build and tests to verify.
-- **AI-assisted parts:** the `CLAUDE.md` analysis; the Strategy-based refactoring of `TimeDepositCalculator` and the golden-master test that guards it; the hexagonal layering, JPA adapter and Liquibase changesets; the REST and OpenAPI layer; the Testcontainers integration tests; the N+1, concurrency, load-test and virtual-thread investigations (each measured before and after, including checks that the tests fail without the fix); the audit trail and per-month idempotency; and this README. AI was used for these because they are mostly well-understood scaffolding, which frees review time for the parts that need judgement: keeping legacy numeric behaviour identical and the naming and API assumptions above.
+### Tools and setup
+
+| | |
+|---|---|
+| Agent | [Claude Code](https://claude.com/claude-code), an agentic coding assistant, used from the JetBrains IDE integration and its terminal |
+| Model | Claude Opus 5.5 |
+| Agent configuration | [`CLAUDE.md`](../CLAUDE.md) at the repository root, the only configuration (see below) |
+| What the agent could run | Maven (`./mvnw`), Git, Docker (Testcontainers, throwaway PostgreSQL containers, k6 via `grafana/k6`), `curl`, and file edits. Every file edit was shown as a diff in the IDE and accepted, or changed, by me before it was applied |
+| Not used | no custom system prompt, no subagents, no MCP servers, no hooks, no plugins. Claude Code's default system prompt plus `CLAUDE.md` is the whole setup |
+
+### Reproducing the setup
+
+1. Install [Claude Code](https://docs.claude.com/en/docs/claude-code) (CLI or IDE extension) and sign in.
+2. Have **JDK 21+ and Docker** available, which the agent needs to build and run the tests. Maven comes with `./mvnw`.
+3. Open the repository root in Claude Code. `CLAUDE.md` is loaded automatically into every session. There is nothing else to install or configure.
+4. Verify the baseline the agent works from: `cd java && ./mvnw test` (53 tests, green).
+
+### Custom rules: `CLAUDE.md`
+
+The agent configuration is a plain Markdown file, versioned with the code. It started from Claude Code's `/init` command (a codebase analysis) and was then maintained alongside every design decision. It contains:
+- **The kata's hard constraints, so the agent can't drift from them:**
+  - exactly two endpoints (also enforced by a test);
+  - `TimeDeposit`'s public API and `updateBalance`'s signature and behaviour frozen;
+  - the golden-master test's legacy copy must never be edited to make a test pass.
+- **Commands:** build, single test, the app with Testcontainers, load test, AOT cache.
+- **Architecture rules:** hexagonal layers, domain without Spring or Lombok, beans stateless, Liquibase layout and "never edit an applied changeset".
+- **Safety rules that came out of the work:**
+  - idempotency and locking must not be weakened;
+  - `open-in-view` stays off;
+  - no SQL built from strings (enforced by ArchUnit);
+  - a 401 must carry no Basic challenge (CSRF);
+  - rate limiting is left to the gateway, by decision;
+  - performance changes must be measured.
+
+### How it was used: the workflow
+
+The agent was used throughout, from the first analysis to the commit history, in a loop:
+1. **I set the direction**, usually as a question ("is the app thread-safe?", "is N+1 handled?", "is it protected from SQL injection?").
+2. **The agent investigated before changing anything**: it read the code, ran the tests, and measured (load tests, phase timings, `EXPLAIN ANALYZE`, a schema diff via `pg_dump`).
+3. **It proposed a fix, or a reason not to make one.** I decided.
+4. **Every change was verified, including that its guard test fails without the fix.** For example: the concurrency test with the row lock removed, the stale-write test without `@Version`, the batching test with batching off, the SQL-injection rules against deliberately unsafe code, and the log-injection test without sanitising.
+5. **Docs and `CLAUDE.md` were updated in the same step**, so the next session starts with the decision on record.
+
+### What was AI-assisted, and why
+
+**Written by the agent, then reviewed and accepted by me diff by diff:** all code, tests, Liquibase changesets, the k6 script, the AOT script and the documentation. That covers:
+- the golden-master tests and the Strategy refactoring;
+- the hexagonal layers, the REST API and OpenAPI contract;
+- the audit trail and per-month idempotency;
+- pessimistic and optimistic locking;
+- Spring Security;
+- the performance and startup work;
+- the security review and the SQL-injection guard;
+- the Liquibase consolidation;
+- the split into atomic commits.
+
+**Why:** most of it is well-understood engineering, where the agent is fast, and I could spend my time on review and decisions. More importantly, the agent made *verification* cheap. Golden-master comparisons over 10,000 cases, load tests, schema diffs and "does this test fail without the fix?" checks are tedious by hand, so they're often skipped. Here every claim in this README comes from such a check.
+
+**Decided by me** (the agent proposed options; several were rejected or changed):
+- **Domain modelling:** plan codes as an enum, and Lombok outside the domain only.
+- **Keeping legacy behaviour over correctness:** the `double` rounding stays and is documented, rather than switched to `BigDecimal`.
+- **Not doing a feature toggle (Unleash)** for a `BigDecimal` version: a documented rollout plan instead.
+- **Adding optimistic locking** on top of the row lock.
+- **Adding Spring Security**, in the lightweight form.
+- **Leaving rate limiting to the gateway.**
+- **No double-entry ledger in this service:** a documented outbox design instead.
+- **Consolidating the Liquibase changesets** before release.
+- **The final pre-submission review.**
+
+**Where the human-in-the-loop mattered.** The agent's own checks caught several of its mistakes, which are documented rather than hidden:
+- **CSRF:** the first "no cookie, so no CSRF" reasoning was wrong, because browsers cache Basic credentials. It was found in the security review and fixed.
+- **Bind-parameter limit:** a suspected 32,767-parameter bug turned out not to exist (measured).
+- **An optimisation that didn't help** was measured and reverted.
+- **A flaky statement-count test** caused by sequence pooling was found and fixed.
+- **Missing executable bit:** the scripts were committed from Windows without it, which was caught before submission.
