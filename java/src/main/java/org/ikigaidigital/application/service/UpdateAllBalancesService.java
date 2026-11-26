@@ -20,9 +20,10 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.YearMonth;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Reuses the existing {@link TimeDepositCalculator#updateBalance(List)} unchanged, so the API and the legacy
@@ -67,25 +68,36 @@ public class UpdateAllBalancesService implements UpdateAllBalancesUseCase {
             return;
         }
 
-        List<BigDecimal> balancesBefore = due.stream().map(d -> Money.fromLegacyBalance(d.getBalance())).toList();
+        Map<Integer, BigDecimal> balanceBeforeById = balancesById(due); // the calculator updates `due` in place
         calculator.updateBalance(due);
         updateTimeDepositBalancesPort.updateBalances(due);
 
-        List<InterestPosting> postings = new ArrayList<>(due.size());
-        for (int i = 0; i < due.size(); i++) {
-            TimeDeposit deposit = due.get(i);
-            postings.add(new InterestPosting(deposit.getId(), period, balancesBefore.get(i),
-                    Money.fromLegacyBalance(deposit.getBalance()), startedAt));
-        }
+        List<InterestPosting> postings = postingsFor(due, balanceBeforeById, period, startedAt);
         interestPostingsPort.saveAll(postings);
 
+        afterCommit(() -> logRun(period, postings, alreadyPosted.size(), startedAt));
+    }
+
+    private static Map<Integer, BigDecimal> balancesById(List<TimeDeposit> deposits) {
+        return deposits.stream().collect(Collectors.toMap(TimeDeposit::getId, d -> Money.fromLegacyBalance(d.getBalance())));
+    }
+
+    /** One audit posting per deposit, including deposits that earned nothing this month. */
+    private static List<InterestPosting> postingsFor(List<TimeDeposit> updated, Map<Integer, BigDecimal> balanceBeforeById,
+                                                     YearMonth period, Instant postedAt) {
+        return updated.stream()
+                .map(deposit -> new InterestPosting(deposit.getId(), period, balanceBeforeById.get(deposit.getId()),
+                        Money.fromLegacyBalance(deposit.getBalance()), postedAt))
+                .toList();
+    }
+
+    private void logRun(YearMonth period, List<InterestPosting> postings, int alreadyPosted, Instant startedAt) {
         BigDecimal totalInterest = postings.stream().map(InterestPosting::interest).reduce(BigDecimal.ZERO, BigDecimal::add);
-        long earningInterest = postings.stream().filter(p -> p.interest().signum() != 0).count();
-        Runnable logRun = () -> log.info("Interest run for {}: posted {} deposits ({} earned interest, {} already "
-                        + "posted this month), total interest {}, took {} ms including commit",
-                period, due.size(), earningInterest, alreadyPosted.size(), totalInterest,
+        long earningInterest = postings.stream().filter(posting -> posting.interest().signum() != 0).count();
+        log.info("Interest run for {}: posted {} deposits ({} earned interest, {} already posted this month), "
+                        + "total interest {}, took {} ms including commit",
+                period, postings.size(), earningInterest, alreadyPosted, totalInterest,
                 Duration.between(startedAt, clock.instant()).toMillis());
-        afterCommit(logRun);
     }
 
     /**
