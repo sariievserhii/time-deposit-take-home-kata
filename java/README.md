@@ -24,6 +24,18 @@ Then open <http://localhost:8080/swagger-ui.html>, click **Authorize**, log in a
 ./mvnw test     # all 62 tests (needs Docker)
 ```
 
+### Platforms
+
+The app is OS-independent: plain Java with no OS-specific code. Times are in UTC whatever the server's timezone, and Git keeps line endings and executable bits right on every checkout. Use `./mvnw` on Linux and macOS, `mvnw.cmd` on Windows.
+
+| Platform | Status |
+|---|---|
+| Windows 11, JDK 26, Docker Desktop | verified: development, all tests, load and startup measurements |
+| Linux (Ubuntu 26.04, x86_64), **JDK 21** | verified: fresh `git clone` from GitHub, then `./mvnw test`, 62/62 green |
+| macOS (Intel / Apple Silicon) | expected to work, not tested: same shell wrapper and JVM, and the Docker images (PostgreSQL 17, k6) support both architectures |
+
+Docker is needed on every platform. Two OS-specific details: on Linux, the k6 command needs `--network host` (see "Performance and load testing"), and `scripts/build-aot-cache.sh` needs bash (Git Bash or WSL on Windows).
+
 ### Run and debug in IntelliJ IDEA
 
 The repository ships shared run configurations (folder [`.run/`](../.run) at the repository root). They appear in IntelliJ's run/debug dropdown automatically. They use the plain *Application* type, so they also work in IntelliJ Community Edition.
