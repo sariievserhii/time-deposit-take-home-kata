@@ -21,7 +21,7 @@ Then open <http://localhost:8080/swagger-ui.html>, click **Authorize**, log in a
 > users and demo data.
 
 ```bash
-./mvnw test     # all 60 tests (needs Docker)
+./mvnw test     # all 62 tests (needs Docker)
 ```
 
 ### Run and debug in IntelliJ IDEA
@@ -94,8 +94,8 @@ The endpoints are secured with HTTP Basic and roles (see "Security"). Both run o
 | `viewer` | `viewer-demo-password` | VIEWER | GET |
 | `operator` | `operator-demo-password` | VIEWER, OPERATOR | GET and POST |
 
-1. Start the app, then open <http://localhost:8080/swagger-ui.html>. The raw contract is at <http://localhost:8080/v3/api-docs>. Both are public.
-2. Click **Authorize** (top right), enter `operator` / `operator-demo-password`, and confirm. Swagger then sends the credentials with every call.
+1. Start the app, then open <http://localhost:8080/swagger-ui.html>. The raw contract is at <http://localhost:8080/v3/api-docs>. Both are public. The demo users are also listed at the top of the Swagger page.
+2. Click **Authorize** (the button with the padlock, top right). In the *basicAuth* dialog enter `operator` / `operator-demo-password`, click **Authorize**, then **Close**. Swagger now sends the credentials with every call, and the padlocks on the endpoints appear closed.
 3. **GET `/api/v1/time-deposits`**: click *Try it out*, then *Execute*. You get every deposit with `id`, `planType`, `balance`, `days` and `withdrawals`.
 4. **POST `/api/v1/time-deposits/balance-updates`**: click *Try it out*, then *Execute*. It returns `204 No Content`, applies one month of interest to every deposit, and records an audit posting for each one. (Logged in as `viewer`, it returns `403 Forbidden`.)
 5. Run the GET again to see the new balances.
@@ -107,6 +107,17 @@ Or with curl:
 curl -u viewer:viewer-demo-password     http://localhost:8080/api/v1/time-deposits
 curl -u operator:operator-demo-password -X POST http://localhost:8080/api/v1/time-deposits/balance-updates
 ```
+
+With Postman or Insomnia: *Authorization* tab → type **Basic Auth**, with the same username and password.
+
+**If a call doesn't work:**
+
+| You see | Meaning | What to do |
+|---|---|---|
+| `401` (empty body), **no browser login dialog** | Not logged in, or wrong password. No dialog appears **by design**: the API sends no Basic challenge, so browsers never cache credentials, which prevents CSRF (see "Security") | Click **Authorize** and enter a user from the table above |
+| `403` on the POST | Logged in as `viewer`, who may only read | In **Authorize**, click **Logout**, then log in as `operator` |
+| Logged in, but `401` again after reloading the page | Swagger forgets the login when the page reloads | Click **Authorize** again |
+| POST `204`, but balances don't change | Interest for this month is already posted (idempotent per month) | Expected; see step 6 |
 
 ## Tests
 
@@ -473,7 +484,7 @@ These are deliberately outside the kata's scope (the README asks for exactly two
 1. Install [Claude Code](https://docs.claude.com/en/docs/claude-code) (CLI or IDE extension) and sign in.
 2. Have **JDK 21+ and Docker** available, which the agent needs to build and run the tests. Maven comes with `./mvnw`.
 3. Open the repository root in Claude Code. `CLAUDE.md` is loaded automatically into every session. There is nothing else to install or configure.
-4. Verify the baseline the agent works from: `cd java && ./mvnw test` (60 tests, green).
+4. Verify the baseline the agent works from: `cd java && ./mvnw test` (62 tests, green).
 
 ### Custom rules: `CLAUDE.md`
 
