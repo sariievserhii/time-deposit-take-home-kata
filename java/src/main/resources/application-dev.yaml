@@ -25,3 +25,15 @@ app:
       - name: operator          # password: operator-demo-password
         password: "{bcrypt}$2a$10$Qd2LUu3NjAhiyhl2RvYVxee6LgdxUHE4bw4CWLxG1Gkt24.gsnQLi"
         roles: [VIEWER, OPERATOR]
+  openapi:
+    # Shown at the top of the Swagger page (dev profile only), so reviewers see how to log in where they need it.
+    login-hint: |
+      **How to log in (local demo users):** click **Authorize**, enter a user below, then use *Try it out*.
+
+      | User | Password | Can call |
+      |---|---|---|
+      | `operator` | `operator-demo-password` | GET and POST |
+      | `viewer` | `viewer-demo-password` | GET only (POST returns 403) |
+
+      A `401` means you're not authorized yet: click **Authorize** first. No browser login dialog appears, by design
+      (no Basic challenge, which prevents CSRF). To switch users: **Authorize**, then **Logout**, then log in again.

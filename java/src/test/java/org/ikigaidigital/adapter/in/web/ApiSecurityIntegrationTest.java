@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -131,6 +132,17 @@ class ApiSecurityIntegrationTest {
         void swaggerUiAndTheOpenApiContractArePublic() throws Exception {
             mockMvc.perform(get("/v3/api-docs")).andExpect(status().isOk());
             mockMvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());
+        }
+
+        /** Reviewers see how to log in on the Swagger page itself, with the same credentials the tests above use. */
+        @Test
+        void swaggerPageExplainsHowToLogInWithTheDemoUsers() throws Exception {
+            mockMvc.perform(get("/v3/api-docs"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.info.description", containsString("Authorize")))
+                    .andExpect(jsonPath("$.info.description", containsString("`operator` | `operator-demo-password`")))
+                    .andExpect(jsonPath("$.info.description", containsString("`viewer` | `viewer-demo-password`")))
+                    .andExpect(jsonPath("$.components.securitySchemes.basicAuth.scheme").value("basic"));
         }
     }
 

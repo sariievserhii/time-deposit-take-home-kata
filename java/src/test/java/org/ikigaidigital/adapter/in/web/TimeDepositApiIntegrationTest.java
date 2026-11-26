@@ -18,7 +18,9 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.groups.Tuple.tuple;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -186,5 +188,14 @@ class TimeDepositApiIntegrationTest {
                 .andExpect(jsonPath("$.paths.length()").value(2))
                 .andExpect(jsonPath("$.paths['" + BASE + "'].get").exists())
                 .andExpect(jsonPath("$.paths['" + BASE + "/balance-updates'].post").exists());
+    }
+
+    /** Outside the dev profile the contract never advertises the demo credentials, even if the docs are enabled. */
+    @Test
+    void openApiContractNeverShowsDemoCredentialsOutsideTheDevProfile() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.info.description", not(containsString("demo-password"))))
+                .andExpect(jsonPath("$.info.description", containsString("HTTP Basic")));
     }
 }
