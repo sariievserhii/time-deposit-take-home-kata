@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: time-deposit-kata
+  # No datasource here on purpose: no credentials are committed for real environments. Provide
+  # SPRING_DATASOURCE_URL / SPRING_DATASOURCE_USERNAME / SPRING_DATASOURCE_PASSWORD (env vars or a secret manager).
+  # Local development: the "dev" profile (application-dev.yaml). Tests: Testcontainers via @ServiceConnection.
+  datasource:
+    hikari:
+      data-source-properties:
+        # PostgreSQL driver: send a JDBC batch of single-row INSERTs as multi-row INSERTs (fewer, larger statements).
+        reWriteBatchedInserts: true
+  jpa:
+    hibernate:
+      # Liquibase owns the schema; Hibernate only checks that the entities match it.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+          # The balance update changes every deposit and inserts one interest posting per deposit. Batching sends
+          # those UPDATEs and INSERTs in groups of 500 instead of one round trip per row. 500 was measured faster
+          # than 50 (see README, "Performance").
+          batch_size: 500
+        order_updates: true
+        order_inserts: true
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    # "demo" loads sample deposits so the endpoints return data out of the box. Tests switch it off.
+    contexts: demo
+
+server:
+  compression:
+    # GET returns every deposit (about 2.2 MB of JSON for 10,000 deposits). Gzip cuts that several times over.
+    enabled: true
+    mime-types: application/json
+    min-response-size: 2KB
+
+springdoc:
+  # Off by default: a production deployment should not hand attackers a map of the API. Enabled in the "dev"
+  # profile, which both local run options use.
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+    path: /swagger-ui.html

@@ -1,0 +1,25 @@
+# Local development only (mvn spring-boot:run -Dspring-boot.run.profiles=dev, and mvn spring-boot:test-run).
+# Never use these credentials outside a local machine.
+spring:
+  datasource:
+    # Matches the docker run command in java/README.md. Ignored under Testcontainers (@ServiceConnection wins).
+    url: jdbc:postgresql://localhost:5432/time_deposit_kata_db
+    username: time_deposit_kata_user
+    password: time_deposit_kata_password
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+app:
+  security:
+    # Demo API users. Only BCrypt hashes are stored; the plain demo passwords are listed in java/README.md.
+    users:
+      - name: viewer            # password: viewer-demo-password
+        password: "{bcrypt}$2a$10$6sw1yvKXIdINDsSnwzryju7KYtHqDEF7lJ.dkvt7mndJlH2JRV5nO"
+        roles: [VIEWER]
+      - name: operator          # password: operator-demo-password
+        password: "{bcrypt}$2a$10$Qd2LUu3NjAhiyhl2RvYVxee6LgdxUHE4bw4CWLxG1Gkt24.gsnQLi"
+        roles: [VIEWER, OPERATOR]
