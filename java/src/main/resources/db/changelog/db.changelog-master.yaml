@@ -1,0 +1,28 @@
+# Liquibase master changelog.
+#
+#   schema/  one changeset per table, in dependency order. Always applied.
+#   data/    sample data, only with a Liquibase context: "demo" (default in application.yaml) or "loadtest".
+#            Production runs with neither, so it gets the schema only.
+#
+# The schema was consolidated into one changeset per table before the first release. From now on, never edit a
+# changeset that may have been applied anywhere: add a new numbered file under schema/ (004-..., 005-...) and include
+# it below. Liquibase records a checksum per changeset and refuses to start if an applied one has changed.
+databaseChangeLog:
+  # --- Schema -------------------------------------------------------------------------------------------------------
+  - include:
+      file: schema/001-time-deposits.sql
+      relativeToChangelogFile: true
+  - include:
+      file: schema/002-withdrawals.sql
+      relativeToChangelogFile: true
+  - include:
+      file: schema/003-interest-postings.sql
+      relativeToChangelogFile: true
+
+  # --- Data (context-specific, after the full schema so every constraint applies) -------------------------------------
+  - include:
+      file: data/demo-data.sql
+      relativeToChangelogFile: true
+  - include:
+      file: data/load-test-data.sql
+      relativeToChangelogFile: true

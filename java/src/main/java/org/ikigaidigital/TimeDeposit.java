@@ -1,5 +1,10 @@
 package org.ikigaidigital;
 
+/**
+ * Shared domain model. Its public API (package, constructor, accessors and the {@code Double} balance)
+ * is intentionally identical to the original kata class: the README forbids breaking changes to it,
+ * because other consumers depend on it. Persistence and API concerns live in adapters instead.
+ */
 public class TimeDeposit {
     private int id;
     private String planType;

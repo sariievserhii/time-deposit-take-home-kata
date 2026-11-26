@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Runs the production main class with the dev profile against your own PostgreSQL on port 55432, which keeps its
+       data between restarts. Start that database first with the docker run command in java/README.md
+       (section "Run it", Option B). -->
+  <configuration default="false" name="Time Deposit (dev profile, Docker PostgreSQL on 55432)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="org.ikigaidigital.TimeDepositKataApplication" />
+    <module name="time-deposit-kata" />
+    <option name="PROGRAM_PARAMETERS" value="--spring.profiles.active=dev" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/java" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

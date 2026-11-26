@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Run or debug the app with PostgreSQL in Docker (Testcontainers) and the dev profile: demo users, demo data,
+       Swagger at http://localhost:8080/swagger-ui.html. Needs Docker running. See java/README.md. -->
+  <configuration default="false" name="Time Deposit (Testcontainers, dev profile)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="org.ikigaidigital.TestTimeDepositKataApplication" />
+    <module name="time-deposit-kata" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/java" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

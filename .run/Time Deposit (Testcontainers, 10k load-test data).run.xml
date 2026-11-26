@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Same as "Testcontainers, dev profile", but loads 10,000 deposits and 30,000 withdrawals (Liquibase context
+       "loadtest") instead of the 6 demo deposits. Used for the k6 load test, see java/README.md. -->
+  <configuration default="false" name="Time Deposit (Testcontainers, 10k load-test data)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="org.ikigaidigital.TestTimeDepositKataApplication" />
+    <module name="time-deposit-kata" />
+    <option name="PROGRAM_PARAMETERS" value="--spring.liquibase.contexts=loadtest" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/java" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

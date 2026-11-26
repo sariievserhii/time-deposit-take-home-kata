@@ -1,0 +1,39 @@
+# Local development only (mvn spring-boot:run -Dspring-boot.run.profiles=dev, and mvn spring-boot:test-run).
+# Never use these credentials outside a local machine.
+spring:
+  datasource:
+    # Matches the docker run command in java/README.md. Port 55432, not 5432, so it never collides with a locally
+    # installed PostgreSQL, whose user would not own this database (PostgreSQL 15+ then refuses to create tables).
+    # Ignored under Testcontainers (@ServiceConnection wins).
+    url: jdbc:postgresql://localhost:55432/time_deposit_kata_db
+    username: time_deposit_kata_user
+    password: time_deposit_kata_password
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+app:
+  security:
+    # Demo API users. Only BCrypt hashes are stored; the plain demo passwords are listed in java/README.md.
+    users:
+      - name: viewer            # password: viewer-demo-password
+        password: "{bcrypt}$2a$10$6sw1yvKXIdINDsSnwzryju7KYtHqDEF7lJ.dkvt7mndJlH2JRV5nO"
+        roles: [VIEWER]
+      - name: operator          # password: operator-demo-password
+        password: "{bcrypt}$2a$10$Qd2LUu3NjAhiyhl2RvYVxee6LgdxUHE4bw4CWLxG1Gkt24.gsnQLi"
+        roles: [VIEWER, OPERATOR]
+  openapi:
+    # Shown at the top of the Swagger page (dev profile only), so reviewers see how to log in where they need it.
+    login-hint: |
+      **How to log in (local demo users):** click **Authorize**, enter a user below, then use *Try it out*.
+
+      | User | Password | Can call |
+      |---|---|---|
+      | `operator` | `operator-demo-password` | GET and POST |
+      | `viewer` | `viewer-demo-password` | GET only (POST returns 403) |
+
+      A `401` means you're not authorized yet: click **Authorize** first. No browser login dialog appears, by design
+      (no Basic challenge, which prevents CSRF). To switch users: **Authorize**, then **Logout**, then log in again.

@@ -1,5 +1,16 @@
 # Time Deposit Refactoring Kata - Take-Home Assignment
 
+> **Solution: Java (Spring Boot), in [`java/`](java/).** Start with **[`java/README.md`](java/README.md)**. It covers
+> the design, assumptions, and the AI-assisted development setup ([`CLAUDE.md`](CLAUDE.md)).
+>
+> **Try it in one minute** (JDK 21+ and Docker): `cd java && ./mvnw spring-boot:test-run`, then open
+> <http://localhost:8080/swagger-ui.html>, click **Authorize** and log in as **`operator` / `operator-demo-password`**
+> (GET and POST), or `viewer` / `viewer-demo-password` (GET only). With curl:
+> `curl -u operator:operator-demo-password http://localhost:8080/api/v1/time-deposits`.
+>
+> The other language folders contain the original starter code and are unchanged. The original assignment follows
+> unchanged below.
+
 ## XA Bank Time Deposit
 
 ### Context

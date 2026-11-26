@@ -1,0 +1,4 @@
+# Clearer startup errors for the two most common local setup problems (see org.ikigaidigital.config.diagnostics).
+org.springframework.boot.diagnostics.FailureAnalyzer=\
+org.ikigaidigital.config.diagnostics.MissingDatabaseFailureAnalyzer,\
+org.ikigaidigital.config.diagnostics.DatabasePermissionFailureAnalyzer
