@@ -13,15 +13,34 @@ cd java
 
 Then open <http://localhost:8080/swagger-ui.html>, click **Authorize**, log in as `operator` / `operator-demo-password`, and call the two endpoints (step by step: "Trigger the endpoints with Swagger" below).
 
-> **Start the app this way, or in the IDE run `TestTimeDepositKataApplication` (in `src/test/java`).** Running
-> `TimeDepositKataApplication` directly, or plain `mvn spring-boot:run`, fails with "Failed to configure a
-> DataSource". That's deliberate: the default configuration has no database, no users and no Swagger, as it would
-> in production, and every environment must supply them explicitly (see "Security"). The command above starts
-> PostgreSQL in Docker and activates the `dev` profile with demo users and demo data.
+> **Start the app this way, or with one of the IntelliJ run configurations below.** Running
+> `TimeDepositKataApplication` directly without a profile, or plain `mvn spring-boot:run`, stops with
+> "No database is configured", together with these same instructions. That's deliberate: the default configuration
+> has no database, no users and no Swagger, as it would in production, and every environment must supply them
+> explicitly (see "Security"). The command above starts PostgreSQL in Docker and activates the `dev` profile with demo
+> users and demo data.
 
 ```bash
-./mvnw test     # all 53 tests (needs Docker)
+./mvnw test     # all 56 tests (needs Docker)
 ```
+
+### Run and debug in IntelliJ IDEA
+
+The repository ships shared run configurations (folder [`.run/`](../.run) at the repository root). They appear in IntelliJ's run/debug dropdown automatically. They use the plain *Application* type, so they also work in IntelliJ Community Edition.
+
+| Run configuration | What it starts |
+|---|---|
+| **Time Deposit (Testcontainers, dev profile)** | The app, with PostgreSQL in Docker and demo data. **Use this to run or debug.** Breakpoints work anywhere. Each start gets a fresh database |
+| Time Deposit (Testcontainers, 10k load-test data) | The same, with 10,000 deposits, for the k6 load test |
+| Time Deposit (dev profile, Docker PostgreSQL on 55432) | The production main class with the `dev` profile, against your own Docker database from Option B below. Its data survives restarts |
+
+One-time setup, if IntelliJ didn't do it for you:
+- Open the **repository root**, then right-click `java/pom.xml` → *Add as Maven Project*.
+- Project SDK: JDK 21+.
+- Enable annotation processing (for Lombok).
+- Have Docker running.
+
+To debug, pick **Time Deposit (Testcontainers, dev profile)** and press *Debug*. Then call the endpoints from Swagger and execution stops at your breakpoints. Debugging a single test: right-click it → *Debug*.
 
 ## Run it
 
@@ -34,22 +53,37 @@ cd java
 ./mvnw spring-boot:test-run
 ```
 
-**Option B: your own PostgreSQL.** No database credentials are committed for real environments. For local development, the `dev` profile (`application-dev.yaml`) matches this container:
+**Option B: your own PostgreSQL, which keeps its data between restarts.** No database credentials are committed for real environments. For local development, the `dev` profile (`application-dev.yaml`) matches this container. It uses **port 55432**, not 5432, so it never collides with a PostgreSQL installed directly on your machine:
 
 ```bash
-docker run -d --name time-deposit-db -p 5432:5432 \
+docker run -d --name time-deposit-db -p 55432:5432 \
   -e POSTGRES_DB=time_deposit_kata_db \
   -e POSTGRES_USER=time_deposit_kata_user \
   -e POSTGRES_PASSWORD=time_deposit_kata_password \
   postgres:17-alpine
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
+
+The interest posting runs once per deposit per month. So with this persistent database, a second POST in the same month changes nothing until you recreate the container: `docker rm -f time-deposit-db`, then the `docker run` again.
 
 Any other environment supplies `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` and `SPRING_DATASOURCE_PASSWORD`, plus its API users (`app.security.users`), from environment variables or a secret manager. Without configured users, every API call is rejected.
 
 Both options activate the `dev` profile, which provides the demo API users listed below. Option A does it automatically.
 
 Liquibase creates the schema on startup. With the default `demo` context it also inserts six sample deposits, covering each plan and the 30, 45 and 365-day boundaries.
+
+### Troubleshooting
+
+The app recognises the two most common local setup problems and prints project-specific instructions instead of Spring's generic error (`config/diagnostics`).
+
+| Message at startup | Cause | Fix |
+|---|---|---|
+| **"No database is configured"** | You started `TimeDepositKataApplication` without a profile (or plain `spring-boot:run`) | Use the quick start, the IntelliJ run configuration, or Option B |
+| **"The database user may not create the schema: permission denied for schema public"** (from Liquibase: *"…make sure that you have both read and write permissions for the 'public.databasechangelog' table"*) | The app reached a PostgreSQL **15+** where its user exists but doesn't own the database. Usually a locally installed PostgreSQL on port 5432 | Use Option B's Docker database (port 55432), or the quick start. Or, as a PostgreSQL superuser: `ALTER DATABASE time_deposit_kata_db OWNER TO time_deposit_kata_user;` then `\c time_deposit_kata_db` and `ALTER SCHEMA public OWNER TO time_deposit_kata_user;`. If an earlier start left tables behind: `DROP DATABASE time_deposit_kata_db; CREATE DATABASE time_deposit_kata_db OWNER time_deposit_kata_user;` |
+| `Could not find a valid Docker environment` | Docker isn't running (Testcontainers) | Start Docker Desktop |
+| `Port 8080 was already in use` | Another instance is still running. After stopping Maven, the app's own JVM can keep running | Stop the other process, or add `--server.port=8081` |
+
+Both diagnostics were checked against real failures. Without a profile, the first message appears. On a PostgreSQL 17 where the user doesn't own the database, the second appears, and after the suggested `ALTER … OWNER` the app starts and serves requests.
 
 ## Trigger the endpoints with Swagger
 
@@ -419,7 +453,7 @@ These are deliberately outside the kata's scope (the README asks for exactly two
 1. Install [Claude Code](https://docs.claude.com/en/docs/claude-code) (CLI or IDE extension) and sign in.
 2. Have **JDK 21+ and Docker** available, which the agent needs to build and run the tests. Maven comes with `./mvnw`.
 3. Open the repository root in Claude Code. `CLAUDE.md` is loaded automatically into every session. There is nothing else to install or configure.
-4. Verify the baseline the agent works from: `cd java && ./mvnw test` (53 tests, green).
+4. Verify the baseline the agent works from: `cd java && ./mvnw test` (56 tests, green).
 
 ### Custom rules: `CLAUDE.md`
 

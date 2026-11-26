@@ -28,7 +28,7 @@ mvn compile
 mvn test                                              # all tests; Spring context tests need Docker running
 mvn test -Dtest=TimeDepositCalculatorTest             # single class
 mvn test -Dtest=TimeDepositCalculatorTest#updateBalance_Test   # single method
-mvn spring-boot:run -Dspring-boot.run.profiles=dev    # needs Postgres on localhost:5432 (credentials in application-dev.yaml)
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev  # needs the Docker Postgres from README Option B on localhost:55432 (not 5432, to avoid local installs)
 mvn spring-boot:test-run                              # runs TestTimeDepositKataApplication, which starts Postgres via Testcontainers
 
 # Load test (k6 via Docker): start the app with 10k deposits, then run the script from java/
@@ -37,6 +37,10 @@ docker run --rm -i -e BASE_URL=http://host.docker.internal:8080 grafana/k6:1.3.0
 ```
 
 Fast startup (JDK 25+): `scripts/build-aot-cache.sh --spring.profiles.active=dev` needs a reachable DB (`SPRING_DATASOURCE_URL`). It builds, extracts the jar, trains a JDK AOT cache, and prints the `java -XX:AOTCache=...` run command. Startup goes from 6.1 s to ~2.2 s. Rebuild the cache after any jar or JDK change.
+
+IntelliJ: shared run configurations live in `.run/` at the repo root (module `time-deposit-kata`, plain *Application* type). "Time Deposit (Testcontainers, dev profile)" is the one to run and debug with. Keep them in sync if main classes, profiles or contexts change. XML comments in them must not contain `--`.
+
+Startup diagnostics (`config/diagnostics`, registered in `META-INF/spring.factories`): `MissingDatabaseFailureAnalyzer` (no datasource, usually no profile) and `DatabasePermissionFailureAnalyzer` (SQLSTATE 42501, PostgreSQL 15+ public schema). Both run ahead of Boot's own analyzers.
 
 `spring-boot:test-run` forks a JVM that keeps running if Maven is killed. Free port 8080 by stopping the `TestTimeDepositKataApplication` java process.
 
