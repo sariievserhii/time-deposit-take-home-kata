@@ -21,7 +21,7 @@ Then open <http://localhost:8080/swagger-ui.html>, click **Authorize**, log in a
 > users and demo data.
 
 ```bash
-./mvnw test     # all 58 tests (needs Docker)
+./mvnw test     # all 60 tests (needs Docker)
 ```
 
 ### Run and debug in IntelliJ IDEA
@@ -162,6 +162,24 @@ config                    wires the framework-free domain objects (and the Clock
   - **Blocked in `lombok.config`:** `@Data`, `@EqualsAndHashCode` and `@ToString` fail the build. On entities they would read lazy collections and break hash-based sets.
   - **The domain stays plain Java:** `TimeDeposit` must keep its exact legacy API, and immutable data uses Java records.
 - **Withdrawals** come back through a separate read model (`TimeDepositSummary`) instead of a new field on the shared `TimeDeposit`.
+
+### Extending interest calculations
+
+The brief asks for a design that can take "future complexities in interest calculations". Every case below is added **without changing `TimeDepositCalculator`**; the calculator only looks up the policy for a plan and applies the legacy rounding.
+
+| Future requirement | How | Shown in |
+|---|---|---|
+| A new plan with a fixed annual rate | a `PlanType` constant plus a subclass of `AnnualRateInterestPolicy` (rate and eligibility only), registered as a bean | the Basic, Student and Premium policies |
+| A different rule for an existing plan | a different `InterestPolicy` bean for that `PlanType` | `appliesWhicheverPoliciesItIsGivenWithoutChangingTheCalculator` |
+| Tiered rates, with rates from a table or configuration | implement `InterestPolicy` directly. A policy is a Spring bean, so it can be given a rate repository, configuration or a `Clock` | `complexRulesPlugInThroughThePolicyInterfaceWithoutChangingTheCalculator` (5% up to 50,000, 6% above) |
+| Rules layered on others (caps, promotions, minimums) | a decorator that wraps any existing policy | `rulesComposeThroughDecoratorsWithoutChangingTheCalculator` (a monthly cap) |
+| Rules that change over time, or a gradual rollout | choose which policy beans the calculator receives in `DomainConfiguration`, e.g. by effective date or a feature flag | see "Money" |
+
+**Limits, deliberately accepted:**
+- **The set of plans is closed.** A new plan needs a `PlanType` constant. That's one line, but it is a change to the enum.
+- **Policies return `double`.** The interface carries the legacy rounding behaviour that must not change (see "Money"). A `BigDecimal` calculation would be a new, versioned interface, not a change to this one.
+- **A policy only receives the `TimeDeposit`** (`planType`, `balance`, `days`). Rules needing more, such as withdrawals or the customer, get it through the policy bean's own dependencies. Passing it in as a parameter would change the legacy `updateBalance` contract.
+- **How often interest is posted (monthly, once per month) belongs to the service** (`UpdateAllBalancesService`), not to the policies. A different schedule changes the service and the `period` of the audit postings.
 
 ### Money: `BigDecimal` everywhere except the legacy calculation
 
@@ -455,7 +473,7 @@ These are deliberately outside the kata's scope (the README asks for exactly two
 1. Install [Claude Code](https://docs.claude.com/en/docs/claude-code) (CLI or IDE extension) and sign in.
 2. Have **JDK 21+ and Docker** available, which the agent needs to build and run the tests. Maven comes with `./mvnw`.
 3. Open the repository root in Claude Code. `CLAUDE.md` is loaded automatically into every session. There is nothing else to install or configure.
-4. Verify the baseline the agent works from: `cd java && ./mvnw test` (58 tests, green).
+4. Verify the baseline the agent works from: `cd java && ./mvnw test` (60 tests, green).
 
 ### Custom rules: `CLAUDE.md`
 

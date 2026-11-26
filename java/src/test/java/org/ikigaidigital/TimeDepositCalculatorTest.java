@@ -3,6 +3,8 @@ package org.ikigaidigital;
 import org.ikigaidigital.domain.interest.AnnualRateInterestPolicy;
 import org.ikigaidigital.domain.interest.BasicInterestPolicy;
 import org.ikigaidigital.domain.interest.InterestPolicy;
+import org.ikigaidigital.domain.interest.PremiumInterestPolicy;
+import org.ikigaidigital.domain.interest.StudentInterestPolicy;
 import org.ikigaidigital.domain.model.PlanType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -11,6 +13,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -20,6 +23,7 @@ import java.util.concurrent.Future;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.assertj.core.api.Assertions.within;
 
 class TimeDepositCalculatorTest {
 
@@ -167,6 +171,71 @@ class TimeDepositCalculatorTest {
         custom.updateBalance(deposits);
 
         assertThat(deposits).extracting(TimeDeposit::getBalance).containsExactly(1010.0, 1000.0);
+    }
+
+    /**
+     * Extensibility beyond the annual-rate template: a future, more complex rule implemented directly against the
+     * InterestPolicy interface. Here, a tiered premium rate (5% a year on the first 50,000, 6% above it) with the
+     * rates supplied from outside (a rate table, configuration, a regulator's publication) instead of hard-coded.
+     * The calculator is not changed.
+     */
+    @Test
+    void complexRulesPlugInThroughThePolicyInterfaceWithoutChangingTheCalculator() {
+        Map<String, Double> rateTable = Map.of("upTo50k", 0.05, "above50k", 0.06);
+        InterestPolicy tieredPremium = new InterestPolicy() {
+            @Override
+            public PlanType planType() {
+                return PlanType.PREMIUM;
+            }
+
+            @Override
+            public double monthlyInterest(TimeDeposit deposit) {
+                if (deposit.getDays() <= 45) {
+                    return 0;
+                }
+                double lowerTier = Math.min(deposit.getBalance(), 50_000);
+                double upperTier = Math.max(deposit.getBalance() - 50_000, 0);
+                return (lowerTier * rateTable.get("upTo50k") + upperTier * rateTable.get("above50k")) / 12;
+            }
+        };
+        TimeDepositCalculator calculator = new TimeDepositCalculator(
+                List.of(new BasicInterestPolicy(), new StudentInterestPolicy(), tieredPremium));
+        List<TimeDeposit> deposits = List.of(
+                new TimeDeposit(1, "premium", 100_000.0, 90),  // (50,000 * 5% + 50,000 * 6%) / 12 = 458.33
+                new TimeDeposit(2, "basic", 1_200.0, 60));     // other plans unaffected: +1.00
+
+        calculator.updateBalance(deposits);
+
+        assertThat(deposits.get(0).getBalance()).isCloseTo(100_458.33, within(0.001));
+        assertThat(deposits.get(1).getBalance()).isEqualTo(1_201.0);
+    }
+
+    /**
+     * Rules compose: a decorator wraps any existing policy, e.g. a regulatory cap on monthly interest, again without
+     * changing the calculator or the wrapped policy.
+     */
+    @Test
+    void rulesComposeThroughDecoratorsWithoutChangingTheCalculator() {
+        InterestPolicy premium = new PremiumInterestPolicy();
+        InterestPolicy cappedPremium = new InterestPolicy() {
+            @Override
+            public PlanType planType() {
+                return premium.planType();
+            }
+
+            @Override
+            public double monthlyInterest(TimeDeposit deposit) {
+                return Math.min(premium.monthlyInterest(deposit), 100.0); // cap: at most 100.00 per month
+            }
+        };
+        TimeDepositCalculator calculator = new TimeDepositCalculator(List.of(cappedPremium));
+        List<TimeDeposit> deposits = List.of(
+                new TimeDeposit(1, "premium", 1_000_000.0, 90), // uncapped: 4,166.67 -> capped at 100.00
+                new TimeDeposit(2, "premium", 12_000.0, 90));   // 50.00, below the cap
+
+        calculator.updateBalance(deposits);
+
+        assertThat(deposits).extracting(TimeDeposit::getBalance).containsExactly(1_000_100.0, 12_050.0);
     }
 
     /**
