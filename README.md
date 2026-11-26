@@ -1,5 +1,11 @@
 # Time Deposit Refactoring Kata - Take-Home Assignment
 
+> **Solution: Java (Spring Boot), in [`java/`](java/).** Start with **[`java/README.md`](java/README.md)**. It has a
+> one-command quick start (`cd java && ./mvnw spring-boot:test-run`, needs JDK 21+ and Docker), Swagger
+> instructions with demo credentials, the design, assumptions, and the AI-assisted development setup
+> ([`CLAUDE.md`](CLAUDE.md)). The other language folders contain the original starter code and are unchanged.
+> The original assignment follows unchanged below.
+
 ## XA Bank Time Deposit
 
 ### Context
