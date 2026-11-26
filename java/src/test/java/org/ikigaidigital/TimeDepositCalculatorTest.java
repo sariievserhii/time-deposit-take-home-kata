@@ -1,5 +1,9 @@
 package org.ikigaidigital;
 
+import org.ikigaidigital.domain.interest.AnnualRateInterestPolicy;
+import org.ikigaidigital.domain.interest.BasicInterestPolicy;
+import org.ikigaidigital.domain.interest.InterestPolicy;
+import org.ikigaidigital.domain.model.PlanType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -10,6 +14,7 @@ import java.util.List;
 import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 class TimeDepositCalculatorTest {
@@ -137,6 +142,29 @@ class TimeDepositCalculatorTest {
         assertThat(deposits).extracting(TimeDeposit::getBalance).containsExactly(1201.0, 1203.0, 1205.0);
     }
 
+    @Test
+    void appliesWhicheverPoliciesItIsGivenWithoutChangingTheCalculator() {
+        InterestPolicy promotionalBasic = new AnnualRateInterestPolicy() {
+            @Override
+            public PlanType planType() {
+                return PlanType.BASIC;
+            }
+
+            @Override
+            protected double annualRate() {
+                return 0.12;
+            }
+        };
+        TimeDepositCalculator custom = new TimeDepositCalculator(List.of(promotionalBasic));
+        List<TimeDeposit> deposits = List.of(
+                new TimeDeposit(1, "basic", 1000.0, 31),
+                new TimeDeposit(2, "premium", 1000.0, 90)); // no policy registered -> no interest
+
+        custom.updateBalance(deposits);
+
+        assertThat(deposits).extracting(TimeDeposit::getBalance).containsExactly(1010.0, 1000.0);
+    }
+
     /**
      * In the app the calculator is a singleton shared by all request threads. It must hold no per-call state:
      * many threads using one instance at once must give exactly the results of single-threaded use.
@@ -182,5 +210,10 @@ class TimeDepositCalculatorTest {
             pool.shutdownNow();
         }
     }
-}
 
+    @Test
+    void rejectsTwoPoliciesForTheSamePlanType() {
+        assertThatThrownBy(() -> new TimeDepositCalculator(List.of(new BasicInterestPolicy(), new BasicInterestPolicy())))
+                .isInstanceOf(IllegalStateException.class);
+    }
+}
