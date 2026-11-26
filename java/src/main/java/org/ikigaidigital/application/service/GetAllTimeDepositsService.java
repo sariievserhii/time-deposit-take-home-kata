@@ -2,7 +2,7 @@ package org.ikigaidigital.application.service;
 
 import lombok.RequiredArgsConstructor;
 import org.ikigaidigital.application.port.in.GetAllTimeDepositsUseCase;
-import org.ikigaidigital.application.port.out.LoadTimeDepositsPort;
+import org.ikigaidigital.application.port.out.LoadTimeDepositSummariesPort;
 import org.ikigaidigital.domain.model.TimeDepositSummary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,11 +13,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GetAllTimeDepositsService implements GetAllTimeDepositsUseCase {
 
-    private final LoadTimeDepositsPort loadTimeDepositsPort;
+    private final LoadTimeDepositSummariesPort loadTimeDepositSummariesPort;
 
     @Override
     @Transactional(readOnly = true)
     public List<TimeDepositSummary> getAllTimeDeposits() {
-        return loadTimeDepositsPort.loadAllWithWithdrawals();
+        return loadTimeDepositSummariesPort.loadAllWithWithdrawals();
     }
 }

@@ -145,7 +145,9 @@ Hexagonal (ports and adapters):
 adapter.in.web            REST controller + OpenAPI contract (TimeDepositApi) + response DTOs
 application.port.in       use cases: GetAllTimeDepositsUseCase, UpdateAllBalancesUseCase
 application.service       use-case implementations (transaction boundary)
-application.port.out      LoadTimeDepositsPort, UpdateTimeDepositBalancesPort, InterestPostingsPort
+application.port.out      one port per need (interface segregation):
+                          LoadTimeDepositSummariesPort (read), LoadTimeDepositsForUpdatePort (locks),
+                          UpdateTimeDepositBalancesPort, InterestPostingsPort
 adapter.out.persistence   JPA entities, Spring Data repositories, port implementations
 domain                    TimeDeposit, TimeDepositCalculator (original package), interest policies,
                           read models, InterestPosting (audit record), Money

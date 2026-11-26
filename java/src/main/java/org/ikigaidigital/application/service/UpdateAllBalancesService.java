@@ -6,7 +6,7 @@ import org.ikigaidigital.TimeDeposit;
 import org.ikigaidigital.TimeDepositCalculator;
 import org.ikigaidigital.application.port.in.UpdateAllBalancesUseCase;
 import org.ikigaidigital.application.port.out.InterestPostingsPort;
-import org.ikigaidigital.application.port.out.LoadTimeDepositsPort;
+import org.ikigaidigital.application.port.out.LoadTimeDepositsForUpdatePort;
 import org.ikigaidigital.application.port.out.UpdateTimeDepositBalancesPort;
 import org.ikigaidigital.domain.model.InterestPosting;
 import org.ikigaidigital.domain.model.Money;
@@ -33,7 +33,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class UpdateAllBalancesService implements UpdateAllBalancesUseCase {
 
-    private final LoadTimeDepositsPort loadTimeDepositsPort;
+    private final LoadTimeDepositsForUpdatePort loadTimeDepositsForUpdatePort;
     private final UpdateTimeDepositBalancesPort updateTimeDepositBalancesPort;
     private final InterestPostingsPort interestPostingsPort;
     private final TimeDepositCalculator calculator;
@@ -56,7 +56,7 @@ public class UpdateAllBalancesService implements UpdateAllBalancesUseCase {
         Instant startedAt = clock.instant();
         YearMonth period = YearMonth.now(clock);
 
-        List<TimeDeposit> deposits = loadTimeDepositsPort.loadAllForUpdate();
+        List<TimeDeposit> deposits = loadTimeDepositsForUpdatePort.loadAllForUpdate();
         Set<Integer> alreadyPosted = interestPostingsPort.findDepositIdsPostedIn(period);
         List<TimeDeposit> due = deposits.stream()
                 .filter(deposit -> !alreadyPosted.contains(deposit.getId()))

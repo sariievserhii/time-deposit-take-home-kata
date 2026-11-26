@@ -4,10 +4,9 @@ import lombok.AllArgsConstructor;
 import org.ikigaidigital.TimeDeposit;
 import org.ikigaidigital.TimeDepositCalculator;
 import org.ikigaidigital.application.port.out.InterestPostingsPort;
-import org.ikigaidigital.application.port.out.LoadTimeDepositsPort;
+import org.ikigaidigital.application.port.out.LoadTimeDepositsForUpdatePort;
 import org.ikigaidigital.application.port.out.UpdateTimeDepositBalancesPort;
 import org.ikigaidigital.domain.model.InterestPosting;
-import org.ikigaidigital.domain.model.TimeDepositSummary;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -85,7 +84,7 @@ class UpdateAllBalancesServiceTest {
 
     /** Behaves like the database: loads copies, and only persisted balances survive between runs. */
     @AllArgsConstructor
-    private static final class InMemoryPorts implements LoadTimeDepositsPort, UpdateTimeDepositBalancesPort, InterestPostingsPort {
+    private static final class InMemoryPorts implements LoadTimeDepositsForUpdatePort, UpdateTimeDepositBalancesPort, InterestPostingsPort {
         private List<TimeDeposit> deposits; // reassigned by updateBalances, like rows in a table
         private final List<InterestPosting> postings = new ArrayList<>(); // initialised, so not a constructor parameter
 
@@ -94,11 +93,6 @@ class UpdateAllBalancesServiceTest {
             return deposits.stream()
                     .map(d -> new TimeDeposit(d.getId(), d.getPlanType(), d.getBalance(), d.getDays()))
                     .toList();
-        }
-
-        @Override
-        public List<TimeDepositSummary> loadAllWithWithdrawals() {
-            throw new UnsupportedOperationException();
         }
 
         @Override

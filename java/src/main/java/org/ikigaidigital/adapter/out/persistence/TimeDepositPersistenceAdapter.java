@@ -2,7 +2,8 @@ package org.ikigaidigital.adapter.out.persistence;
 
 import lombok.RequiredArgsConstructor;
 import org.ikigaidigital.TimeDeposit;
-import org.ikigaidigital.application.port.out.LoadTimeDepositsPort;
+import org.ikigaidigital.application.port.out.LoadTimeDepositSummariesPort;
+import org.ikigaidigital.application.port.out.LoadTimeDepositsForUpdatePort;
 import org.ikigaidigital.application.port.out.UpdateTimeDepositBalancesPort;
 import org.ikigaidigital.domain.model.Money;
 import org.ikigaidigital.domain.model.TimeDepositSummary;
@@ -17,7 +18,9 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-class TimeDepositPersistenceAdapter implements LoadTimeDepositsPort, UpdateTimeDepositBalancesPort {
+/** One adapter for the time_deposits table, implementing the read port and the two write-side ports. */
+class TimeDepositPersistenceAdapter
+        implements LoadTimeDepositSummariesPort, LoadTimeDepositsForUpdatePort, UpdateTimeDepositBalancesPort {
 
     private final TimeDepositJpaRepository repository;
 
