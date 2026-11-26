@@ -21,7 +21,7 @@ Then open <http://localhost:8080/swagger-ui.html>, click **Authorize**, log in a
 > users and demo data.
 
 ```bash
-./mvnw test     # all 56 tests (needs Docker)
+./mvnw test     # all 58 tests (needs Docker)
 ```
 
 ### Run and debug in IntelliJ IDEA
@@ -455,7 +455,7 @@ These are deliberately outside the kata's scope (the README asks for exactly two
 1. Install [Claude Code](https://docs.claude.com/en/docs/claude-code) (CLI or IDE extension) and sign in.
 2. Have **JDK 21+ and Docker** available, which the agent needs to build and run the tests. Maven comes with `./mvnw`.
 3. Open the repository root in Claude Code. `CLAUDE.md` is loaded automatically into every session. There is nothing else to install or configure.
-4. Verify the baseline the agent works from: `cd java && ./mvnw test` (56 tests, green).
+4. Verify the baseline the agent works from: `cd java && ./mvnw test` (58 tests, green).
 
 ### Custom rules: `CLAUDE.md`
 
