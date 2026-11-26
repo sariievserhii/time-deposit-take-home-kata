@@ -14,7 +14,7 @@ cd java
 Then open <http://localhost:8080/swagger-ui.html>, click **Authorize**, log in as `operator` / `operator-demo-password`, and call the two endpoints (step by step: "Trigger the endpoints with Swagger" below).
 
 > **Start the app this way, or with one of the IntelliJ run configurations below.** Running
-> `TimeDepositKataApplication` directly without a profile, or plain `mvn spring-boot:run`, stops with
+> `TimeDepositKataApplication` directly without a profile, or plain `./mvnw spring-boot:run`, stops with
 > "No database is configured", together with these same instructions. That's deliberate: the default configuration
 > has no database, no users and no Swagger, as it would in production, and every environment must supply them
 > explicitly (see "Security"). The command above starts PostgreSQL in Docker and activates the `dev` profile with demo
@@ -35,6 +35,15 @@ The app is OS-independent: plain Java with no OS-specific code. Times are in UTC
 | macOS (Intel / Apple Silicon) | expected to work, not tested: same shell wrapper and JVM, and the Docker images (PostgreSQL 17, k6) support both architectures |
 
 Docker is needed on every platform. Two OS-specific details: on Linux, the k6 command needs `--network host` (see "Performance and load testing"), and `scripts/build-aot-cache.sh` needs bash (Git Bash or WSL on Windows).
+
+**Windows PowerShell.** The commands in this README are written so they work in bash (Linux, macOS, Git Bash) **and** in PowerShell: single-line `docker run`, and `-D…` arguments in quotes. PowerShell would otherwise split `-Dspring-boot.run.profiles=dev` at the first dot, and Maven then fails with *"Unknown lifecycle phase .run.profiles=dev"*. Three things still differ, each tested in Windows PowerShell 5.1:
+
+| In bash | In PowerShell | Why |
+|---|---|---|
+| `./mvnw …` | `.\mvnw …` (or `.\mvnw.cmd …`) | runs the Windows wrapper |
+| `curl -u user:pass …` | `curl.exe -u user:pass …` | in Windows PowerShell 5.1, `curl` is an alias for `Invoke-WebRequest`, which doesn't understand `-u` |
+| `… run - < load-test/time-deposits.js` | `Get-Content load-test\time-deposits.js \| docker run … run -` | PowerShell has no `<` input redirection |
+| a line ending in `\` | a line ending in `` ` `` (backtick) | line continuation; the README avoids it |
 
 ### Run and debug in IntelliJ IDEA
 
@@ -68,13 +77,11 @@ cd java
 **Option B: your own PostgreSQL, which keeps its data between restarts.** No database credentials are committed for real environments. For local development, the `dev` profile (`application-dev.yaml`) matches this container. It uses **port 55432**, not 5432, so it never collides with a PostgreSQL installed directly on your machine:
 
 ```bash
-docker run -d --name time-deposit-db -p 55432:5432 \
-  -e POSTGRES_DB=time_deposit_kata_db \
-  -e POSTGRES_USER=time_deposit_kata_user \
-  -e POSTGRES_PASSWORD=time_deposit_kata_password \
-  postgres:17-alpine
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+docker run -d --name time-deposit-db -p 55432:5432 -e POSTGRES_DB=time_deposit_kata_db -e POSTGRES_USER=time_deposit_kata_user -e POSTGRES_PASSWORD=time_deposit_kata_password postgres:17-alpine
+./mvnw spring-boot:run "-Dspring-boot.run.profiles=dev"
 ```
+
+Both lines work as they are in bash and PowerShell (in PowerShell, write `.\mvnw`). The quotes around `-D…` are required in PowerShell. If the container already exists, start it with `docker start time-deposit-db` instead of `docker run`.
 
 The interest posting runs once per deposit per month. So with this persistent database, a second POST in the same month changes nothing until you recreate the container: `docker rm -f time-deposit-db`, then the `docker run` again.
 
@@ -120,6 +127,8 @@ curl -u viewer:viewer-demo-password     http://localhost:8080/api/v1/time-deposi
 curl -u operator:operator-demo-password -X POST http://localhost:8080/api/v1/time-deposits/balance-updates
 ```
 
+In Windows PowerShell, write `curl.exe` instead of `curl`. There, `curl` is an alias for `Invoke-WebRequest`, which doesn't understand `-u`.
+
 With Postman or Insomnia: *Authorization* tab → type **Basic Auth**, with the same username and password.
 
 **If a call doesn't work:**
@@ -134,8 +143,8 @@ With Postman or Insomnia: *Authorization* tab → type **Basic Auth**, with the 
 ## Tests
 
 ```bash
-mvn test                                    # everything; the Spring/API tests need Docker running
-mvn test -Dtest=TimeDepositCalculatorTest   # interest logic only, no Docker
+./mvnw test                                    # everything; the Spring/API tests need Docker running
+./mvnw test -Dtest=TimeDepositCalculatorTest   # interest logic only, no Docker
 ```
 
 - `TimeDepositCalculatorTest`: a golden-master test that compares the refactored calculator with a verbatim copy of the original code (`LegacyTimeDepositCalculator`) across every plan, the day boundaries and about 200 balances, plus readable boundary cases and an extensibility test.
@@ -361,12 +370,14 @@ The load test is [`load-test/time-deposits.js`](load-test/time-deposits.js), a [
 
 ```bash
 # 1. Start the app with 10,000 deposits and 30,000 withdrawals (Liquibase context "loadtest")
-mvn spring-boot:test-run -Dspring-boot.run.arguments="--spring.liquibase.contexts=loadtest"
+./mvnw spring-boot:test-run "-Dspring-boot.run.arguments=--spring.liquibase.contexts=loadtest"
 
 # 2. In another terminal (Docker Desktop; on Linux use --network host and http://localhost:8080)
 docker run --rm -i -e BASE_URL=http://host.docker.internal:8080 grafana/k6:1.3.0 run - < load-test/time-deposits.js
 # Optional: -e READ_RPS=50 -e DURATION=30s
 ```
+
+In PowerShell, step 2 is `Get-Content load-test\time-deposits.js | docker run --rm -i -e BASE_URL=http://host.docker.internal:8080 grafana/k6:1.3.0 run -`, because PowerShell has no `<` redirection. Step 1 works as written (with `.\mvnw`). Alternatively, use the IntelliJ run configuration "Time Deposit (Testcontainers, 10k load-test data)" for step 1.
 
 **Results** (60 s, 10,000 deposits). Environment: a 20-core Windows laptop, with the app, PostgreSQL (Testcontainers) and k6 (Docker Desktop) on the same machine, so the numbers are relative, not absolute.
 

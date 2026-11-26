@@ -21,18 +21,18 @@ The full brief is in `README.md`. The requirements that constrain every change:
 
 Spring Boot 4.1 (parent POM), Java 21, Maven, Spring Data JPA, Spring MVC, springdoc-openapi (Swagger UI), Liquibase, PostgreSQL, Lombok, Testcontainers.
 
-The module has no Maven wrapper, so use the system `mvn` and run it from `java/`:
+Use the Maven wrapper (`./mvnw`, or `.\mvnw` in PowerShell) from `java/`. Write commands so they work in bash **and** PowerShell: quote every `-D…` argument that contains a dot (PowerShell splits it at the first dot otherwise), and keep `docker run` on one line (no `\` continuation). In PowerShell, `curl` must be `curl.exe`, and `< file` must be `Get-Content file |`.
 
 ```bash
-mvn compile
-mvn test                                              # all tests; Spring context tests need Docker running
-mvn test -Dtest=TimeDepositCalculatorTest             # single class
-mvn test -Dtest=TimeDepositCalculatorTest#updateBalance_Test   # single method
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev  # needs the Docker Postgres from README Option B on localhost:55432 (not 5432, to avoid local installs)
-mvn spring-boot:test-run                              # runs TestTimeDepositKataApplication, which starts Postgres via Testcontainers
+./mvnw compile
+./mvnw test                                              # all tests; Spring context tests need Docker running
+./mvnw test -Dtest=TimeDepositCalculatorTest             # single class
+./mvnw test -Dtest=TimeDepositCalculatorTest#updateBalance_Test   # single method
+./mvnw spring-boot:run "-Dspring-boot.run.profiles=dev"  # needs the Docker Postgres from README Option B on localhost:55432 (not 5432, to avoid local installs)
+./mvnw spring-boot:test-run                              # runs TestTimeDepositKataApplication, which starts Postgres via Testcontainers
 
 # Load test (k6 via Docker): start the app with 10k deposits, then run the script from java/
-mvn spring-boot:test-run -Dspring-boot.run.arguments="--spring.liquibase.contexts=loadtest"
+./mvnw spring-boot:test-run "-Dspring-boot.run.arguments=--spring.liquibase.contexts=loadtest"
 docker run --rm -i -e BASE_URL=http://host.docker.internal:8080 grafana/k6:1.3.0 run - < load-test/time-deposits.js
 ```
 
