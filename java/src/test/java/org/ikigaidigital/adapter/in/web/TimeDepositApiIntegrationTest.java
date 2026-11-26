@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.ikigaidigital.TestcontainersConfiguration;
+import org.ikigaidigital.TestDatabase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,9 +58,7 @@ class TimeDepositApiIntegrationTest {
 
     @BeforeEach
     void seed() {
-        jdbc.update("DELETE FROM interest_postings");
-        jdbc.update("DELETE FROM withdrawals");
-        jdbc.update("DELETE FROM time_deposits");
+        TestDatabase.deleteAll(jdbc);
         jdbc.update("""
                 INSERT INTO time_deposits (id, plan_type, days, balance) VALUES
                     (1, 'basic',   45, 1234567.00),

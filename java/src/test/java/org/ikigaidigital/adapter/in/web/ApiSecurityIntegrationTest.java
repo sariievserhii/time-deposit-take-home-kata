@@ -1,6 +1,7 @@
 package org.ikigaidigital.adapter.in.web;
 
 import org.ikigaidigital.TestcontainersConfiguration;
+import org.ikigaidigital.TestDatabase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -49,9 +51,7 @@ class ApiSecurityIntegrationTest {
 
         @BeforeEach
         void cleanData() {
-            jdbc.update("DELETE FROM interest_postings");
-            jdbc.update("DELETE FROM withdrawals");
-            jdbc.update("DELETE FROM time_deposits");
+            TestDatabase.deleteAll(jdbc);
         }
 
         /**
@@ -96,7 +96,7 @@ class ApiSecurityIntegrationTest {
         void securityHeadersProtectFinancialData() throws Exception {
             mockMvc.perform(get(GET_ALL).with(httpBasic("viewer", "viewer-demo-password")))
                     .andExpect(status().isOk())
-                    .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")))
+                    .andExpect(header().string("Cache-Control", containsString("no-store")))
                     .andExpect(header().string("X-Content-Type-Options", "nosniff"))
                     .andExpect(header().string("X-Frame-Options", "DENY"));
         }

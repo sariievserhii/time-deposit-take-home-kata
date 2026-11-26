@@ -12,6 +12,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -174,10 +178,10 @@ class TimeDepositCalculatorTest {
         int threads = 16;
         int depositsPerThread = 2_000;
         String[] plans = {"basic", "student", "premium"};
-        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(threads);
-        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        CountDownLatch start = new CountDownLatch(1);
         try {
-            List<java.util.concurrent.Future<Boolean>> results = new ArrayList<>();
+            List<Future<Boolean>> results = new ArrayList<>();
             for (int t = 0; t < threads; t++) {
                 int seed = t;
                 results.add(pool.submit(() -> {
@@ -203,7 +207,7 @@ class TimeDepositCalculatorTest {
                 }));
             }
             start.countDown();
-            for (java.util.concurrent.Future<Boolean> result : results) {
+            for (Future<Boolean> result : results) {
                 assertThat(result.get()).isTrue();
             }
         } finally {

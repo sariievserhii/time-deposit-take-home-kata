@@ -1,6 +1,7 @@
 package org.ikigaidigital.application.service;
 
 import org.ikigaidigital.TestcontainersConfiguration;
+import org.ikigaidigital.TestDatabase;
 import org.ikigaidigital.application.port.in.GetAllTimeDepositsUseCase;
 import org.ikigaidigital.application.port.in.UpdateAllBalancesUseCase;
 import org.ikigaidigital.domain.model.TimeDepositSummary;
@@ -46,9 +47,7 @@ class ConcurrentBalanceUpdateIntegrationTest {
 
     @BeforeEach
     void seed() {
-        jdbc.update("DELETE FROM interest_postings");
-        jdbc.update("DELETE FROM withdrawals");
-        jdbc.update("DELETE FROM time_deposits");
+        TestDatabase.deleteAll(jdbc);
         jdbc.update("INSERT INTO time_deposits (id, plan_type, days, balance) VALUES (1, 'premium', 90, 100000.00)");
     }
 
@@ -86,7 +85,7 @@ class ConcurrentBalanceUpdateIntegrationTest {
      */
     @Test
     void readsDuringAnInterestRunSeeAllOldOrAllNewBalancesNeverAMix() throws Exception {
-        jdbc.update("DELETE FROM time_deposits");
+        TestDatabase.deleteAll(jdbc);
         // 5,000 basic deposits of 1200.00 at 60 days: each earns exactly 1.00 -> total 6,000,000.00 -> 6,005,000.00
         jdbc.update("""
                 INSERT INTO time_deposits (id, plan_type, days, balance)

@@ -1,6 +1,7 @@
 package org.ikigaidigital.adapter.out.persistence;
 
 import org.ikigaidigital.TestcontainersConfiguration;
+import org.ikigaidigital.TestDatabase;
 import org.ikigaidigital.application.port.in.UpdateAllBalancesUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,9 +39,7 @@ class OptimisticLockingIntegrationTest {
 
     @BeforeEach
     void seed() {
-        jdbc.update("DELETE FROM interest_postings");
-        jdbc.update("DELETE FROM withdrawals");
-        jdbc.update("DELETE FROM time_deposits");
+        TestDatabase.deleteAll(jdbc);
         jdbc.update("""
                 INSERT INTO time_deposits (id, plan_type, days, balance) VALUES
                     (1, 'basic',   60,  1200.00),

@@ -1,6 +1,7 @@
 package org.ikigaidigital.application.service;
 
 import org.ikigaidigital.TestcontainersConfiguration;
+import org.ikigaidigital.TestDatabase;
 import org.ikigaidigital.application.port.in.UpdateAllBalancesUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,9 +33,7 @@ class LargeVolumeBalanceUpdateIntegrationTest {
 
     @BeforeEach
     void seed() {
-        jdbc.update("DELETE FROM interest_postings");
-        jdbc.update("DELETE FROM withdrawals");
-        jdbc.update("DELETE FROM time_deposits");
+        TestDatabase.deleteAll(jdbc);
         // basic, 60 days, 1200.00: each earns exactly 1.00
         jdbc.update("INSERT INTO time_deposits (id, plan_type, days, balance) "
                 + "SELECT g, 'basic', 60, 1200.00 FROM generate_series(1, ?) AS g", DEPOSITS);
